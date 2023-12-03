@@ -1,0 +1,31 @@
+- hosts: localhost
+  tasks:
+    - name: Выгрузка py файла service
+      command: docker cp app_application:/service.py ./service.py
+
+    - name: Запуск временного контейнера для копирования файлов
+      docker_container:
+        name: temp-container-for-copy
+        image: alpine
+        volumes:
+          - py-volume:/app
+        command: sleep 600
+        detach: yes
+
+    - name: Копирование service.py в volume
+      command: docker cp ./service.py temp-container-for-copy:/app/service.py
+
+    - name: Остановка временного контейнера
+      docker_container:
+        name: temp-container-for-copy
+        state: absent
+
+    - name: Запуск Docker контейнера
+      docker_container:
+        name: python-exec-container
+        image: openjdk:18-alpine
+        command: python3 -jar /app/service-1.jar
+        volumes:
+          - py-volume:/app
+        detach: yes
+
